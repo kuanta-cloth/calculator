@@ -1,0 +1,626 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>成衣加工報價系統</title>
+<style>
+:root {
+  --bg:#f3f5f9;
+  --card:#fff;
+  --ink:#253348;
+  --muted:#69778a;
+  --accent:#426b9b;
+  --line:#e2e7ef;
+}
+* {box-sizing:border-box}
+body {
+  margin:0;
+  padding:22px 12px;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:"Microsoft JhengHei",Arial,sans-serif;
+}
+main {max-width:900px;margin:auto}
+h1 {font-size:25px;margin:0 0 7px}
+h2 {font-size:17px;margin:0 0 15px}
+p {color:var(--muted);line-height:1.6}
+.card {
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:20px;
+  margin:15px 0;
+}
+.grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+.field {min-width:0}
+label {
+  display:block;
+  font-size:13px;
+  font-weight:bold;
+  margin-bottom:7px;
+}
+input,select {
+  width:100%;
+  padding:11px;
+  border:1px solid #ccd5e1;
+  border-radius:9px;
+  background:white;
+  color:var(--ink);
+  font-size:15px;
+}
+input:focus,select:focus {
+  outline:2px solid #b7cee8;
+}
+button {
+  padding:10px 15px;
+  border:1px solid var(--line);
+  background:white;
+  border-radius:9px;
+  cursor:pointer;
+  color:var(--ink);
+}
+button.primary {
+  background:var(--accent);
+  color:white;
+  border:0;
+}
+.row {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+}
+.stats {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+}
+.stat {
+  padding:14px;
+  background:#edf2f8;
+  border-radius:11px;
+}
+.stat small {
+  display:block;
+  color:var(--muted);
+  margin-bottom:6px;
+}
+.stat strong {font-size:20px}
+table {
+  width:100%;
+  border-collapse:collapse;
+  font-size:14px;
+}
+th,td {
+  padding:11px 7px;
+  border-bottom:1px solid var(--line);
+  text-align:left;
+}
+th {color:var(--muted);font-size:12px}
+td.num,th.num {text-align:right}
+.item-check {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-weight:normal;
+  margin:0;
+}
+.item-check input {width:17px;height:17px}
+.total {
+  background:#eaf0f8;
+  border-radius:12px;
+  padding:19px;
+}
+.total strong {
+  display:block;
+  font-size:30px;
+  margin-top:6px;
+}
+.note {font-size:12px}
+.hidden {display:none}
+.error {color:#b42318}
+.radio {
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-weight:normal;
+}
+.radio input {width:auto}
+@media(max-width:520px) {
+  body {padding:12px 8px}
+  .card {padding:15px}
+  h1 {font-size:22px}
+  .stats {gap:5px}
+  .stat {padding:9px}
+  .stat strong {font-size:16px}
+  table {font-size:12px}
+  th,td {padding:9px 4px}
+  .total strong {font-size:26px}
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>成衣加工報價系統</h1>
+  <p>選擇加工分類、件數與布料，自動計算加工報價。</p>
+
+  <section class="card">
+    <h2>基本資料</h2>
+    <div class="field">
+      <label>加工大類</label>
+      <select id="category"></select>
+    </div>
+    <br>
+    <div class="grid">
+      <div class="field">
+        <label>加工件數</label>
+        <input id="qty" type="number" min="1" step="1" value="10">
+      </div>
+      <div class="field" id="fabricField">
+        <label>布料代號</label>
+        <select id="fabric">
+          <option value="0">一般布料（0%）</option>
+          <option value="15">A2787（15%）</option>
+          <option value="15">A2788（15%）</option>
+          <option value="15">A2662（15%）</option>
+          <option value="15">A3139（15%）</option>
+          <option value="20">A3385（20%）</option>
+          <option value="20">A3383（20%）</option>
+        </select>
+      </div>
+      <div class="field hidden" id="sizeField">
+        <label>絲巾尺寸</label>
+        <select id="size">
+          <option value="10">50 × 50 cm</option>
+          <option value="15">50 × 100 cm</option>
+          <option value="20">100 × 100 cm</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="garmentSettings">
+    <h2>一般成衣計價規則</h2>
+    <div class="grid">
+      <div class="field">
+        <label>起始加成（%）</label>
+        <input id="startRate" type="number" value="50">
+      </div>
+      <div class="field">
+        <label>每增加一件遞減（百分點）</label>
+        <input id="rateStep" type="number" value="1">
+      </div>
+      <div class="field">
+        <label>換線費（元）</label>
+        <input id="lineFee" type="number" value="15">
+      </div>
+      <div class="field">
+        <label>取消換線費起點（件）</label>
+        <input id="feeCutoff" type="number" value="21">
+      </div>
+    </div>
+    <p>百分比計算方式</p>
+    <label class="radio">
+      <input type="radio" name="method" value="add" checked>
+      數量加成與布料加成相加
+    </label>
+    <label class="radio">
+      <input type="radio" name="method" value="multiply">
+      數量加成與布料加成連乘
+    </label>
+    <p class="note">
+      換線費暫按每件計算。百分比不設下限，
+      超過 51 件可能出現負加成，請確認實際規則。
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>計價資訊</h2>
+    <div class="stats">
+      <div class="stat">
+        <small>數量加成</small>
+        <strong id="quantityRate">—</strong>
+      </div>
+      <div class="stat">
+        <small>布料加成</small>
+        <strong id="fabricRate">—</strong>
+      </div>
+      <div class="stat">
+        <small>換線費</small>
+        <strong id="feeDisplay">—</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="itemsSection">
+    <div class="row">
+      <h2>加工項目明細</h2>
+      <button id="selectAll">全選</button>
+    </div>
+    <p class="note">取消勾選不需要的加工項目。</p>
+    <table>
+      <thead>
+        <tr>
+          <th>加工項目</th>
+          <th class="num">原單價</th>
+          <th class="num">加成後</th>
+        </tr>
+      </thead>
+      <tbody id="itemsBody"></tbody>
+    </table>
+  </section>
+
+  <section class="card hidden" id="specialSection">
+    <h2>特殊加工計價</h2>
+    <div id="specialInfo"></div>
+  </section>
+
+  <section class="card">
+    <h2>報價結果</h2>
+    <div class="row">
+      <span>原加工費／級距單價</span>
+      <b id="baseTotal">—</b>
+    </div>
+    <hr>
+    <div class="row">
+      <span>每件最終單價</span>
+      <b id="unitTotal">—</b>
+    </div>
+    <br>
+    <div class="total">
+      <small>整筆訂單加工總價</small>
+      <strong id="grandTotal">—</strong>
+    </div>
+    <p id="warning" class="note"></p>
+    <button class="primary" id="copyButton">
+      複製報價結果
+    </button>
+  </section>
+</main>
+
+<script>
+// ===== 1. 加工分類與原單價資料庫 =====
+
+const garments = {
+  "一般圓T（短）": [
+    ["併肩－拉領",3],
+    ["上袖合身",2.5],
+    ["下擺－袖口",2.5],
+    ["後包領",2],
+    ["車標",0.5],
+    ["修線",1.5],
+    ["燙折",3],
+    ["包",1]
+  ],
+  "一般圓T（長）": [
+    ["併肩－拉領",3],
+    ["上袖合身",3],
+    ["下擺－袖口",2.5],
+    ["後包領",2],
+    ["車標",0.5],
+    ["修線",1.5],
+    ["燙折",3.5],
+    ["折包",1]
+  ],
+  "一般POLO衫（短）": [
+    ["開門襟",10],
+    ["併肩－合身",2.5],
+    ["車領片加壓線",4],
+    ["翻領片",1],
+    ["領片合身（單）",6],
+    ["雙槽領（有領臺）",10],
+    ["袖口－下擺",2.5],
+    ["下擺開叉",2.5],
+    ["羅紋束口",1.5],
+    ["鎖眼－釘扣",1],
+    ["修線",1.5],
+    ["燙折（本布領）",4],
+    ["燙折（羅紋領）",3],
+    ["包",1]
+  ],
+  "一般POLO衫（長）": [
+    ["開門襟",10],
+    ["併肩－合身",3],
+    ["車領片加壓線",4],
+    ["翻領片",1],
+    ["領片合身（單）",6],
+    ["雙槽領（有領臺）",10],
+    ["袖口－下擺",2.5],
+    ["下擺開叉",2.5],
+    ["羅紋束口",1.5],
+    ["鎖眼－釘扣",1],
+    ["修線",1.5],
+    ["燙折（本布領）",4],
+    ["燙折（羅紋領）",3],
+    ["包",1]
+  ]
+};
+
+// 特殊加工：暫用前一版示範級距
+// 請依正式報價表確認金額
+const specialPrices = {
+  "抱枕（充棉）":[20,15,10],
+  "掛布":[25,20,15],
+  "門簾、桌布":[50,40,30]
+};
+
+const categories = [
+  ...Object.keys(garments),
+  ...Object.keys(specialPrices),
+  "絲巾捲邊"
+];
+
+const $ = id => document.getElementById(id);
+const number = id => Number($(id).value);
+const money = x => Number.isFinite(x)
+  ? x.toLocaleString("zh-TW",{
+      maximumFractionDigits:2
+    })
+  : "—";
+
+const selection = {};
+let latestQuote = "";
+
+// ===== 2. 建立分類下拉選單 =====
+
+categories.forEach(name => {
+  const option = document.createElement("option");
+  option.value = name;
+  option.textContent = name;
+  $("category").appendChild(option);
+});
+
+// ===== 3. 加工項目勾選 =====
+
+function renderItems() {
+  const category = $("category").value;
+  const body = $("itemsBody");
+  body.innerHTML = "";
+
+  if (!garments[category]) return;
+
+  garments[category].forEach((item,index) => {
+    const key = category + "|" + index;
+    if (!(key in selection)) selection[key] = true;
+
+    const tr = document.createElement("tr");
+
+    const nameCell = document.createElement("td");
+    const label = document.createElement("label");
+    label.className = "item-check";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = selection[key];
+    checkbox.addEventListener("change",() => {
+      selection[key] = checkbox.checked;
+      calculate();
+    });
+
+    const span = document.createElement("span");
+    span.textContent = item[0];
+
+    label.append(checkbox,span);
+    nameCell.appendChild(label);
+
+    const priceCell = document.createElement("td");
+    priceCell.className = "num";
+    priceCell.textContent = money(item[1]);
+
+    const resultCell = document.createElement("td");
+    resultCell.className = "num";
+    resultCell.id = "itemResult" + index;
+
+    tr.append(nameCell,priceCell,resultCell);
+    body.appendChild(tr);
+  });
+}
+
+// ===== 4. 共用計算引擎 =====
+
+function calculate() {
+  const category = $("category").value;
+  const qty = number("qty");
+  const fabricRate = number("fabric");
+
+  const isGarment = Boolean(garments[category]);
+  const isScarf = category === "絲巾捲邊";
+
+  $("garmentSettings").classList.toggle(
+    "hidden",!isGarment
+  );
+  $("itemsSection").classList.toggle(
+    "hidden",!isGarment
+  );
+  $("specialSection").classList.toggle(
+    "hidden",isGarment
+  );
+  $("fabricField").classList.toggle(
+    "hidden",isScarf
+  );
+  $("sizeField").classList.toggle(
+    "hidden",!isScarf
+  );
+
+  if (!Number.isInteger(qty) || qty < 1) {
+    ["quantityRate","fabricRate","feeDisplay",
+     "baseTotal","unitTotal","grandTotal"].forEach(
+      id => $(id).textContent = "—"
+    );
+    $("warning").textContent = "請輸入大於 0 的整數件數。";
+    latestQuote = "";
+    return;
+  }
+
+  let base = 0;
+  let unit = 0;
+  let qtyRate = 0;
+  let fee = 0;
+  let note = "";
+
+  if (isGarment) {
+    const start = number("startRate");
+    const step = number("rateStep");
+    const lineFee = number("lineFee");
+    const cutoff = number("feeCutoff");
+
+    qtyRate = start - (qty-1)*step;
+    fee = qty < cutoff ? lineFee : 0;
+
+    const method = document.querySelector(
+      'input[name="method"]:checked'
+    ).value;
+
+    const factor = method === "add"
+      ? 1+(qtyRate+fabricRate)/100
+      : (1+qtyRate/100)*(1+fabricRate/100);
+
+    garments[category].forEach((item,index) => {
+      const key = category+"|"+index;
+      const enabled = selection[key] !== false;
+      const result = item[1]*factor;
+
+      if (enabled) base += item[1];
+
+      const cell = $("itemResult"+index);
+      if (cell) {
+        cell.textContent = enabled
+          ? money(result)
+          : "—";
+      }
+    });
+
+    unit = base*factor+fee;
+
+    if (qtyRate < 0) {
+      note = "注意：數量加成已變成負百分比，"
+           + "目前尚未設定最低加成限制。";
+    }
+
+  } else if (isScarf) {
+    base = number("size");
+    fee = qty < 50 ? 3 : 0;
+    unit = base+fee;
+
+    $("specialInfo").textContent =
+      "尺寸基本單價："+money(base)
+      +" 元；50 條以下每條加 3 元。";
+
+  } else {
+    const tier = qty<=10 ? 0 : qty<=20 ? 1 : 2;
+    base = specialPrices[category][tier];
+    unit = base*(1+fabricRate/100);
+
+    $("specialInfo").textContent =
+      "目前適用級距："+(
+        tier===0 ? "1～10 件"
+        : tier===1 ? "11～20 件"
+        : "21 件以上"
+      )+"；基本單價："+money(base)+" 元。";
+  }
+
+  $("quantityRate").textContent =
+    isGarment ? qtyRate+"%" : "級距計價";
+
+  $("fabricRate").textContent =
+    isScarf ? "不適用" : "+"+fabricRate+"%";
+
+  $("feeDisplay").textContent =
+    isGarment ? money(fee)+" 元"
+    : isScarf ? money(fee)+" 元"
+    : "已含";
+
+  $("baseTotal").textContent = money(base)+" 元";
+  $("unitTotal").textContent = money(unit)+" 元";
+  $("grandTotal").textContent =
+    money(unit*qty)+" 元";
+
+  $("warning").textContent = note;
+
+  const fabricName = $("fabric").selectedOptions[0].text;
+  const sizeName = $("size").selectedOptions[0].text;
+
+  const details = isGarment
+    ? garments[category]
+        .filter((item,i) =>
+          selection[category+"|"+i] !== false
+        )
+        .map(item=>item[0]+"："+money(item[1]))
+        .join("\n")
+    : "";
+
+  latestQuote =
+    "成衣加工報價\n"+
+    "加工類型："+category+"\n"+
+    "件數："+qty+"\n"+
+    (isScarf
+      ? "尺寸："+sizeName+"\n"
+      : "布料："+fabricName+"\n")+
+    (isGarment
+      ? "數量加成："+qtyRate+"%\n"
+      : "")+
+    details+"\n"+
+    "每件單價："+money(unit)+" 元\n"+
+    "訂單總價："+money(unit*qty)+" 元";
+}
+
+// ===== 5. 操作事件 =====
+
+$("category").addEventListener("change",()=>{
+  renderItems();
+  calculate();
+});
+
+document.querySelectorAll("input,select").forEach(el=>{
+  if (el.id !== "category") {
+    el.addEventListener("input",calculate);
+    el.addEventListener("change",calculate);
+  }
+});
+
+$("selectAll").addEventListener("click",()=>{
+  const category = $("category").value;
+  if (!garments[category]) return;
+
+  garments[category].forEach((item,index)=>{
+    selection[category+"|"+index] = true;
+  });
+
+  renderItems();
+  calculate();
+});
+
+$("copyButton").addEventListener("click",async()=>{
+  if (!latestQuote) return;
+
+  try {
+    await navigator.clipboard.writeText(latestQuote);
+    alert("報價結果已複製！");
+  } catch {
+    const textarea = document.createElement("textarea");
+    textarea.value = latestQuote;
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    const copied = document.execCommand("copy");
+    textarea.remove();
+
+    alert(copied
+      ? "報價結果已複製！"
+      : "瀏覽器限制複製，請改用 HTTPS 網址開啟。");
+  }
+});
+
+// ===== 6. 啟動 =====
+
+renderItems();
+calculate();
+</script>
+</body>
+</html>
